@@ -6,14 +6,14 @@
     <title>Pixel Detective | The Planets: Earth</title>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <style>
-        /* === CSS VARIABLES === */
+        /* === CSS VARIABLES (TEMA EARTH: HIJAU NEON) === */
         :root {
             --bg-dark: #050507;
             --bg-panel: #0d0d12;
             --neon-green: #00ff41;
             --neon-cyan: #00f0ff;
             --neon-red: #ff003c;
-            --neon-purple: #bc13fe;
+            --neon-yellow: #ffb000;
             --text-main: #e0e0e0;
             --text-muted: #8b8b9b;
             --border-color: #1f1f2e;
@@ -24,29 +24,22 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
 
-        /* === CUSTOM CURSOR (CROSSHAIR) === */
+        /* === CUSTOM CURSOR (HIJAU) === */
         .cursor {
             width: 24px; height: 24px;
             border: 2px solid var(--neon-green);
             border-radius: 50%;
-            position: fixed;
-            pointer-events: none;
-            z-index: 9999;
+            position: fixed; pointer-events: none; z-index: 9999;
             transform: translate(-50%, -50%);
             transition: width 0.2s, height 0.2s, background-color 0.2s, border-color 0.2s;
             mix-blend-mode: screen;
         }
-
-        .cursor::before, .cursor::after {
-            content: ''; position: absolute; background: var(--neon-green);
-            transition: background 0.2s;
-        }
+        .cursor::before, .cursor::after { content: ''; position: absolute; background: var(--neon-green); transition: background 0.2s; }
         .cursor::before { width: 2px; height: 100%; left: 50%; top: 0; transform: translateX(-50%); }
         .cursor::after { width: 100%; height: 2px; top: 50%; left: 0; transform: translateY(-50%); }
-
         .cursor.hovering {
             width: 48px; height: 48px;
-            background-color: rgba(0, 240, 255, 0.1);
+            background-color: rgba(0, 255, 65, 0.1);
             border-color: var(--neon-cyan);
         }
         .cursor.hovering::before, .cursor.hovering::after { background: var(--neon-cyan); }
@@ -54,12 +47,8 @@
         .cursor-trail {
             width: 8px; height: 8px;
             background: var(--neon-cyan);
-            border-radius: 50%;
-            position: fixed;
-            pointer-events: none;
-            z-index: 9998;
-            opacity: 0.6;
-            transform: translate(-50%, -50%);
+            border-radius: 50%; position: fixed; pointer-events: none;
+            z-index: 9998; opacity: 0.6; transform: translate(-50%, -50%);
             box-shadow: 0 0 10px var(--neon-cyan);
         }
 
@@ -68,12 +57,10 @@
         ::-webkit-scrollbar-track { background: var(--bg-dark); }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--neon-green); }
-
         #progress-bar {
             position: fixed; top: 0; left: 0; height: 4px;
             background: linear-gradient(to right, var(--neon-green), var(--neon-cyan));
-            width: 0%; z-index: 1000;
-            box-shadow: 0 0 10px var(--neon-green);
+            width: 0%; z-index: 1000; box-shadow: 0 0 10px var(--neon-green);
         }
 
         /* === BACKGROUND CANVAS === */
@@ -88,11 +75,9 @@
             background-color: var(--bg-dark);
             color: var(--text-main);
             font-family: var(--font-robot);
-            line-height: 1.6;
-            padding: 20px;
+            line-height: 1.6; padding: 20px;
             overflow-x: hidden;
         }
-
         .container { max-width: 1000px; margin: 0 auto; position: relative; z-index: 1; }
 
         /* === NAVBAR === */
@@ -101,16 +86,10 @@
             background: rgba(13, 13, 18, 0.8);
             padding: 15px; border-radius: 8px;
             border: 1px solid var(--border-color);
-            margin-bottom: 30px;
-            backdrop-filter: blur(10px);
-            flex-wrap: wrap;
-            animation: slideDown 0.8s ease-out;
+            margin-bottom: 30px; backdrop-filter: blur(10px);
+            flex-wrap: wrap; animation: slideDown 0.8s ease-out;
         }
-
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
 
         .nav-link {
             text-decoration: none; color: var(--text-muted);
@@ -121,17 +100,47 @@
         .nav-link:hover { color: var(--neon-cyan); background: rgba(0, 240, 255, 0.1); border-color: var(--neon-cyan); }
         .nav-link.active { color: var(--bg-dark); background: var(--neon-green); border-color: var(--neon-green); box-shadow: 0 0 15px rgba(0, 255, 65, 0.4); }
 
-        /* === HEADER === */
+        /* === HEADER (DENGAN LOGO ROBOT HACKER) === */
         header {
             text-align: center; padding: 60px 20px;
             background: radial-gradient(circle at center, rgba(0, 255, 65, 0.05) 0%, transparent 70%);
             border-bottom: 1px solid var(--border-color);
-            margin-bottom: 30px;
-            position: relative;
+            margin-bottom: 30px; position: relative;
             animation: fadeIn 1.2s ease-out;
         }
-
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Styling untuk Logo Robot */
+        .robot-logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .robot-logo-svg {
+            width: 120px;
+            height: 120px;
+            filter: drop-shadow(0 0 15px var(--neon-green));
+            animation: float 4s ease-in-out infinite;
+        }
+
+        /* Animasi Melayang */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* Efek Cahaya Berkedip di Mata Robot */
+        .robot-eye {
+            animation: blinkEye 3s infinite;
+        }
+        @keyframes blinkEye {
+            0%, 90%, 100% { opacity: 1; }
+            95% { opacity: 0.2; }
+        }
 
         header h1 {
             font-family: var(--font-title); font-size: 2.8em;
@@ -140,7 +149,6 @@
             text-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
             margin-bottom: 10px;
         }
-
         header h1 span { color: var(--neon-green); }
         header p { color: var(--neon-cyan); font-family: var(--font-mono); font-size: 1.1em; letter-spacing: 1px; }
 
@@ -179,8 +187,7 @@
             padding: 30px; margin-bottom: 30px;
             position: relative;
             clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
-            transition: all 0.4s ease;
-            backdrop-filter: blur(5px);
+            transition: all 0.4s ease; backdrop-filter: blur(5px);
         }
         .step-card:hover {
             border-left-color: var(--neon-green);
@@ -308,6 +315,7 @@
             .btn-download { width: 100%; justify-content: center; }
             .cursor, .cursor-trail { display: none; }
             * { cursor: auto; }
+            .robot-logo-svg { width: 90px; height: 90px; }
         }
     </style>
 </head>
@@ -324,11 +332,45 @@
         <!-- NAVBAR -->
         <nav class="navbar">
             <a href="#" class="nav-link active">[ THE_PLANETS: EARTH ]</a>
-            <a href="#" class="nav-link">[ HACKABLE: III ]</a>
+            <a href="write2.html" class="nav-link">[ HACKABLE: III ]</a>
         </nav>
 
-        <!-- HEADER -->
+        <!-- HEADER DENGAN ROBOT LOGO -->
         <header>
+            <div class="robot-logo-container">
+                <!-- SVG Robot Hacker -->
+                <svg class="robot-logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Antena -->
+                    <line x1="50" y1="10" x2="50" y2="25" stroke="#00ff41" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="50" cy="8" r="4" fill="#00f0ff" class="robot-eye"/>
+                    
+                    <!-- Kepala -->
+                    <rect x="25" y="25" width="50" height="40" rx="8" fill="#0d0d12" stroke="#00ff41" stroke-width="3"/>
+                    
+                    <!-- Mata Kiri -->
+                    <rect x="35" y="35" width="10" height="10" rx="2" fill="#00f0ff" class="robot-eye"/>
+                    <!-- Mata Kanan -->
+                    <rect x="55" y="35" width="10" height="10" rx="2" fill="#00f0ff" class="robot-eye"/>
+                    
+                    <!-- Mulut / Grid -->
+                    <line x1="38" y1="55" x2="62" y2="55" stroke="#00ff41" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="42" y1="55" x2="42" y2="60" stroke="#00ff41" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="50" y1="55" x2="50" y2="60" stroke="#00ff41" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="58" y1="55" x2="58" y2="60" stroke="#00ff41" stroke-width="2" stroke-linecap="round"/>
+
+                    <!-- Telinga Kiri -->
+                    <rect x="18" y="38" width="7" height="14" rx="2" fill="#0d0d12" stroke="#00f0ff" stroke-width="2"/>
+                    <!-- Telinga Kanan -->
+                    <rect x="75" y="38" width="7" height="14" rx="2" fill="#0d0d12" stroke="#00f0ff" stroke-width="2"/>
+
+                    <!-- Badan / Leher -->
+                    <rect x="40" y="65" width="20" height="10" fill="#0d0d12" stroke="#00ff41" stroke-width="2"/>
+                    <rect x="30" y="75" width="40" height="20" rx="4" fill="#0d0d12" stroke="#00ff41" stroke-width="3"/>
+                    
+                    <!-- Hacker Hoodie / Detail -->
+                    <path d="M 35 85 L 40 75 L 50 80 L 60 75 L 65 85" fill="none" stroke="#00f0ff" stroke-width="2"/>
+                </svg>
+            </div>
             <h1>Pixel <span>Detective</span></h1>
             <p>// WRITE-UP: VULNHUB - THE PLANETS: EARTH</p>
             <div>
@@ -679,7 +721,7 @@
 
         revealElements.forEach(el => revealObserver.observe(el));
 
-        console.log("PIXEL DETECTIVE SYSTEM ONLINE");
+        console.log("THE PLANETS: EARTH WRITE-UP LOADED SUCCESSFULLY");
     </script>
 </body>
 </html>
